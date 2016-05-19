@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:iis="http://schemas.microsoft.com/wix/IIsExtension">
+  <Product Id="*" Name="WebApplicationSetup" Language="1033" Version="1.0.0.0" Manufacturer="Haufe-Lexware" UpgradeCode="0496b95e-b369-4f22-9ff2-0e9728e09e09">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of WebApplication is already installed." />
+
+    <Media Id="1" Cabinet="cab1.cab" EmbedCab="yes" />
+
+    <Feature Id="ProductFeature" Title="WebApplicationSetup" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="IISConfiguration" />
+    </Feature>
+  </Product>
+
+  <Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="GoCD">
+          <Directory Id="WebsiteFolder" Name="Website">
+            <Directory Id="WebApplicationBinFolder" Name="WebApplication"/>
+          </Directory>
+        </Directory>
+      </Directory>
+    </Directory>
+
+  </Fragment>
+
+  <Fragment>
+
+    <Property Id="FRAMEWORKROOT">
+      <RegistrySearch Id="FrameworkRootDir" Root="HKLM"
+                    Key="SOFTWARE\Microsoft\.NETFramework"
+                    Type="directory" Name="InstallRoot"/>
+    </Property>
+
+    <Property Id="ASPNETREGIIS" >
+      <DirectorySearch Path="[FRAMEWORKROOT]"
+                  Depth="4" Id="FindAspNetRegIis">
+        <FileSearch Name="aspnet_regiis.exe" MinVersion="4.0"/>
+      </DirectorySearch>
+    </Property>
+
+    <InstallExecuteSequence>
+      <Custom Action="MakeWepApp20" Before="InstallFinalize">
+        ASPNETREGIIS AND NOT Installed
+      </Custom>
+    </InstallExecuteSequence>
+
+
+    <CustomAction Id="MakeWepApp20" Directory="WebsiteFolder" Impersonate="no"  Execute="deferred"
+          ExeCommand="[ASPNETREGIIS] -i"
+          Return="check"/>
+
+    <ComponentGroup Id="ProductComponents" Directory="WebApplicationBinFolder">
+      <ComponentGroupRef Id="Binaries"/>
+    </ComponentGroup>
+
+
+    <ComponentGroup Id="IISConfiguration" Directory="WebsiteFolder" >
+      <Component Id="Website" Guid="" KeyPath="yes">
+
+        <iis:WebAppPool Id="AppPool" Name="WebApplication" ManagedRuntimeVersion="v4.0"
+                IdleTimeout="0" RecycleMinutes="0" ManagedPipelineMode="integrated">
+        </iis:WebAppPool>
+
+        <iis:WebSite Id="WebApplication" Description="WebApplication" Directory="WebApplicationBinFolder" StartOnInstall="yes" >
+          <iis:WebAddress Id="AllUnassigned" Port="80"/>
+
+          <iis:WebApplication Id="SampleApplicationId" WebAppPool="AppPool"
+                            Name="SampleApplicationName">
+          </iis:WebApplication>
+        </iis:WebSite>
+
+
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+</Wix>
